@@ -1,0 +1,44 @@
+﻿#include <Windows.h>
+#include <iostream>
+#include <ctime>
+
+#define SECOND 10000000
+
+HANDLE htimer1 = NULL;
+HANDLE htimer2 = NULL;
+
+long long it1 = -3 * SECOND;
+long long it2 = -15 * SECOND;
+
+int i = 0;
+
+DWORD WINAPI ChildThread() {
+	while (true) {
+		WaitForSingleObject(htimer1, INFINITE);
+		std::cout << clock()/ CLOCKS_PER_SEC << "s:\t" << i << "\n";
+	}
+}
+
+int main() {
+	htimer1 = CreateWaitableTimer(NULL, FALSE, NULL);
+	std::cout << clock() << ": start" << "\n";
+	if (!SetWaitableTimer(htimer1, (LARGE_INTEGER*)&it1, 3000, NULL, NULL, FALSE)) throw "Error SetwaitableTimer";
+
+	DWORD ChildId = 0;
+	HANDLE hchild = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ChildThread, NULL, NULL, &ChildId);
+
+	htimer2 = CreateWaitableTimer(NULL, FALSE, NULL);
+	if (!SetWaitableTimer(htimer2, (LARGE_INTEGER*)&it2, 0, NULL, NULL, FALSE)) throw "Error SetwaitableTimer";
+
+	while (true) {
+		if (WaitForSingleObject(htimer2, 0) == WAIT_OBJECT_0) {
+			std::cout << clock() / CLOCKS_PER_SEC << "s:\t" << i << "\n";
+			TerminateThread(hchild, 0);
+			break;
+		}
+		i++;
+	}
+
+	system("pause");
+	return 0;
+}
